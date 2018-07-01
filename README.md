@@ -33,18 +33,22 @@ You can generate a PDF or an HTML copy of this guide using
 
 ## Table of Contents
 
-* [Source Code Layout & Organization](#source-code-layout--organization)
-* [Syntax](#syntax)
-* [Naming](#naming)
-* [Strings](#strings)
-* [Macros](#macros)
-    * [Macro Declarations](#macro-declarations)
-* [Anonymous (lambda) functions](#anonymous-lambda-functions)
-* [Loading and Autoloading](#loading-and-autoloading)
-* [Comments](#comments)
-    * [Comment Annotations](#comment-annotations)
-    * [Docstrings](#docstrings)
-* [Existential](#existential)
+- [Source Code Layout & Organization](#source-code-layout--organization)
+- [Syntax](#syntax)
+- [Naming](#naming)
+- [Macros](#macros)
+- [Functions](#functions)
+    - [Macro Declarations](#macro-declarations)
+    - [Loading and Autoloading](#loading-and-autoloading)
+- [Lists](#lists)
+- [Comments](#comments)
+    - [Comment Annotations](#comment-annotations)
+    - [Docstrings](#docstrings)
+- [Tools](#tools)
+- [Existential](#existential)
+- [Contributing](#contributing)
+- [License](#license)
+- [Spread the Word](#spread-the-word)
 
 ## Source Code Layout & Organization
 
@@ -350,6 +354,15 @@ name clashes.
     (defun palindrome? ...) ; Scheme style
     (defun is-palindrome ...) ; Java style
     ```
+* Face names [should not](https://www.gnu.org/software/emacs/manual/html_node/elisp/Defining-Faces.html) end in `-face`.
+
+    ```el
+    ;; good
+    (defface widget-inactive ...)
+
+    ;; bad
+    (defface widget-inactive-face ...)
+    ```
 
 ## Macros
 
@@ -498,6 +511,52 @@ name clashes.
     ;;; bad
     ;;;###autoload
     (foo-setup)
+    ```
+
+## Lists
+
+* Use `dolist` instead of calling the same s-exps over different variables:
+
+    ```el
+    ;;; good
+    (dolist (hook '(prog-mode-hook text-mode-hook))
+      (add-hook hook 'turn-on-column-number-mode)
+      (add-hook hook 'turn-off-line-number-mode)
+      (add-hook hook 'linum-mode))
+
+    ;;; bad
+    (add-hook 'prog-mode-hook 'turn-on-column-number-mode)
+    (add-hook 'prog-mode-hook 'turn-off-line-number-mode)
+    (add-hook 'prog-mode-hook 'linum-mode))
+    (add-hook 'text-mode-hook 'turn-on-column-number-mode)
+    (add-hook 'text-mode-hook 'turn-off-line-number-mode)
+    (add-hook 'text-mode-hook 'linum-mode))
+    ```
+
+* Use `seq-do` or `dolist` instead of `mapcar` if you don't intend to concatenate
+  the result.
+
+    ```el
+    ;;; good
+    (font-lock-add-keywords nil (mapcar 'downcase list-of-crazy-cased-words))
+    (seq-do 'load list-of-files-to-load)
+
+    ;;; bad
+    (mapcar 'load list-of-files-to-load)
+    ```
+
+* Use `dolist` instead of calling `seq-do` over a lambda. Reserve `seq-do` for
+  single function calls.
+
+    ```el
+    ;;; good
+    (dolist (map (list c-mode-map c++-mode-map))
+      (define-key map "\C-c\C-c" 'compile))
+
+    ;;; bad
+    (mapc
+      (lambda () (define-key map "\C-c\C-c" 'compile))
+      (list c-mode-map c++-mode-map))
     ```
 
 ## Comments
@@ -649,10 +708,15 @@ you are helping to continue that tradition!
     ...)
   ```
 
-* Emacs' built-in utility, Checkdoc, can automatically check
-  docstrings for adherence to coding conventions with the built-in
-  Checkdoc utility. Many in the Emacs community use Checkdoc by way of
-  [Flycheck](http://flycheck.readthedocs.org/en/latest/).
+## Tools
+
+* Use `checkdoc` to check for style issues
+  * Many in the Emacs community use `checkdoc`
+    with [Flycheck](http://flycheck.readthedocs.org/en/latest/).
+* Use [`package-lint`](https://github.com/purcell/package-lint) to check
+  packages before submission to repositories such
+  as [MELPA](https://melpa.org/).
+  * See the `package-lint` README about integration with [`flycheck`](http://www.flycheck.org/en/latest/).
 
 ## Existential
 
